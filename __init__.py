@@ -35,6 +35,41 @@ class PermuteMaskBatch:
                 output[i] = combined
         return (output,)
 
+class FlattenAgainstOriginal:
+    
+    # no internal state
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "base_image": ("IMAGE",),
+                "candidates": ("IMAGE",),
+            },
+        }
+    
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("IMAGE",)
+    OUTPUT_IS_LIST = (False,)
+
+    FUNCTION = "flattenAgainstOriginal"
+    OUTPUT_NODE = False
+    CATEGORY = "image"
+
+    def flattenAgainstOriginal(self, base_image, candidates):
+        
+        if len(base_image) > 1:
+            raise Exception('ERROR: FlattenAgainstOriginal does not allow image batches for the base_image.')
+
+        cand_masks = (candidates != base_image)
+        flattened = base_image.clone()
+        for i, candidate in enumerate(candidates):
+            flattened = torch.where(cand_masks[i], candidate, flattened)
+
+        return (flattened,)
+
 class CombinatorialDetailer:
     
     # no internal state
@@ -89,10 +124,12 @@ class CombinatorialDetailer:
 NODE_CLASS_MAPPINGS= {
     "PermuteMaskBatch": PermuteMaskBatch,
     "CombinatorialDetailer": CombinatorialDetailer,
+    "FlattenAgainstOriginal": FlattenAgainstOriginal,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "PermuteMaskBatch": "Permute Mask Batch",
     "CombinatorialDetailer": "Combinatorial Detailer",
+    "FlattenAgainstOriginal": "Flatten Batch against Original",
 }
 
 __version__ = "1.1.0"
